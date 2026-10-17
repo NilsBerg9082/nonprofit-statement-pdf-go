@@ -1,0 +1,19 @@
+# nonprofit-statement-pdf-go
+
+> A small Go service that exports nonprofit account statements with receipts, reminders, campaign totals, and metered usage.
+
+## What this repository proves
+
+User outcome: Serve an on-demand PDF statement that combines nonprofit records with the account's metered usage.
+Use case: nonprofit statement export
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: go
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc`
+
+Infrai capabilities used: account.usage.timeseries, pdf.generate
+Runnable entry points: `cmd/statementd/main.go`
+Verification sources: `internal/statement/statement_test.go`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt

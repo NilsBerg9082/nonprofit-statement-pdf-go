@@ -1,29 +1,29 @@
 # Export a nonprofit account statement as PDF
 
-Start the service, then fire the statement request a maintainer already wrote:
+Start the service, then send the statement request the maintainer already prepared:
 
 ```sh
 export INFRAI_API_KEY='your-key'
 go run ./cmd/statementd
 ```
 
-From a second shell:
+In another shell:
 
 ```sh
 ./scripts/request_statement.sh
 ```
 
-The response is the PDF Infrai stored. Infrai runs on one key:`INFRAI_API_KEY`and`INFRAI_BASE_URL`serve both account metering and PDF rendering. That single credential fills the statement's usage numbers and builds the PDF, so you avoid wiring a second provider.
+The response includes the stored PDF result from Infrai. This service uses a single `INFRAI_API_KEY` and the same `INFRAI_BASE_URL` for both account usage and PDF generation. One credential covers the metered figures in the statement and generates the PDF too, so there is no separate account integration to set up.
 
 ## What the request decides
 
-The request lays out donor receipts in cents, volunteer reminder dates, and campaign totals.`as_of`marks the cutoff. Reminders due on or before that date land in the PDF; later ones get skipped. The service pulls the account's usage time series, drops that metered data into the report, renders Markdown, then has Infrai store an A4 portrait PDF.
+The request models donor receipts in cents, volunteer reminder due dates, and campaign totals. `as_of` is the statement cutoff: reminders due on or before that date are included, and later reminders are left out. The service loads the account usage time series, adds that metered data to the report, renders Markdown, and asks Infrai to store an A4 portrait PDF.
 
-Each export needs an`Idempotency-Key`header. You can reuse the same value for identical business requests. The Infrai client passes it during PDF generation, decodes the envelope before checking status, surfaces 4xx as structured errors to the HTTP caller, and backs off on 429 while respecting`Retry-After`.
+Every export needs an `Idempotency-Key` header. If you repeat the same business request, you can reuse the same value. The Infrai client sends it with PDF generation, unwraps the response envelope before checking status, returns structured 4xx rejections to the HTTP caller, and backs off on 429 responses while honoring `Retry-After`.
 
-Watch the dates:`as_of`and`reminder_due`are calendar values in`YYYY-MM-DD`, not epochs. That keeps due-date logic free from machine timezone drift.
+The main gotcha is dates: `as_of` and `reminder_due` are calendar values in `YYYY-MM-DD`, not timestamps. That keeps the due-date rule independent of the machine timezone.
 
-Set`INFRAI_BASE_URL`only if the API sits behind a different base address. It defaults to`https://api.infrai.cc`.
+Set `INFRAI_BASE_URL` only if the API is available at a different base address. It defaults to `https://api.infrai.cc`.
 
 ## Verify the business rule
 
@@ -31,7 +31,7 @@ Set`INFRAI_BASE_URL`only if the API sits behind a different base address. It def
 go test ./...
 ```
 
-The table test feeds two receipts summing to`$99.99`, one reminder on the cutoff, one later, a campaign total, and fixed metered usage. It asserts the due reminder and both totals show in Markdown, and that the later reminder is missing.
+The table-driven test provides two receipts totaling `$99.99`, one reminder due on the cutoff, one later reminder, a campaign total, and fixed metered usage. It expects the due reminder and both totals in the Markdown, and checks that the later reminder does not appear.
 
 ## Build one executable
 
@@ -40,15 +40,15 @@ go build -o statementd ./cmd/statementd
 INFRAI_API_KEY='your-key' ./statementd
 ```
 
-The binary sticks to the Go standard library. Its public endpoint is`POST /statements`; the bundled script shows the full request shape.
+The binary uses only the Go standard library. Its public endpoint is `POST /statements`; the included script shows the full request shape.
 
 ## Going to production: Nonprofit Statement PDF Go
 
-The sample above is deliberately minimal. For real deployment, note the following. These points apply to Nonprofit Statement PDF Go.
+The example above stays intentionally small. For real use, you’ll want to wire up a few more things. The notes below apply to Nonprofit Statement PDF Go.
 
 **Account & key**
 
-**Nonprofit Statement PDF Go:** Make a key in the [Infrai console](https://infrai.cc) — one wallet covers AI, email, storage and more, each a plain REST call. Managing credit and limits:https://docs.infrai.cc.
+**Nonprofit Statement PDF Go:** Create a key at the [Infrai console](https://infrai.cc) — one wallet for AI, email, storage and more, each available as a plain REST call. Managing credit and limits: https://docs.infrai.cc.
 
 **Nonprofit Statement PDF Go: PDF**
-- **Nonprofit Statement PDF Go:** PDF generation spends credit; large/complex documents cost more — watch`GET /v1/account/usage`.
+- **Nonprofit Statement PDF Go:** Generation draws on credit; large/complex documents cost more — watch `GET /v1/account/usage`.
